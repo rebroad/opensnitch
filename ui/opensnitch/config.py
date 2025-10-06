@@ -13,6 +13,8 @@ class Config:
 
     OPERAND_PROCESS_ID = "process.id"
     OPERAND_PROCESS_PATH = "process.path"
+    OPERAND_PROCESS_PARENT_PATH = "process.parent.path"
+    OPERAND_PROCESS_GRANDPARENT_PATH = "process.grandparent.path"
     OPERAND_PROCESS_COMMAND = "process.command"
     OPERAND_PROCESS_ENV = "process.env."
     OPERAND_PROCESS_HASH_MD5 = "process.hash.md5"
