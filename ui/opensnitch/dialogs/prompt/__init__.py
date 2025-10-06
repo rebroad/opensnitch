@@ -435,19 +435,24 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         # Show process hierarchy (parent and grandparent processes)
         if hasattr(con, 'process_tree') and con.process_tree:
             try:
-                # Reverse the tree to show from parent to grandparent
-                process_tree = list(con.process_tree)
-                process_tree.reverse()
+                # Debug: Print the raw process tree structure
+                print(f"[DEBUG] Process tree for {con.process_path}:")
+                for i, item in enumerate(con.process_tree):
+                    print(f"  [{i}] PID: {item.value}, Path: {item.key}")
 
-                # Build hierarchy string
+                # The tree is already in the correct order (current process first, then parents)
+                # We want to show parents, so skip the first entry (current process)
+                process_tree = list(con.process_tree)
+
+                # Build hierarchy string (skip current process, show parents)
                 hierarchy_parts = []
-                for i, path in enumerate(process_tree[:3]):  # Show up to 3 levels (parent, grandparent, great-grandparent)
+                for i, item in enumerate(process_tree[1:4]):  # Skip current process, show up to 3 parent levels
                     if i == 0:
-                        hierarchy_parts.append(f"Parent: {path.key}")
+                        hierarchy_parts.append(f"Parent: {item.key} (PID: {item.value})")
                     elif i == 1:
-                        hierarchy_parts.append(f"Grandparent: {path.key}")
+                        hierarchy_parts.append(f"Grandparent: {item.key} (PID: {item.value})")
                     else:
-                        hierarchy_parts.append(f"Great-grandparent: {path.key}")
+                        hierarchy_parts.append(f"Great-grandparent: {item.key} (PID: {item.value})")
 
                 hierarchy_text = " → ".join(hierarchy_parts)
 
@@ -464,6 +469,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
             except Exception as e:
                 # If there's an error processing the tree, just continue normally
+                print(f"[DEBUG] Error processing process tree: {e}")
                 pass
 
         #if len(self._con.process_args) == 0 or self._con.process_args[0] == "":
@@ -557,6 +563,16 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         combo.addItem(QC.translate("popups", "from this executable"), _constants.FIELD_PROC_PATH)
         if int(con.process_id) < 0:
             combo.model().item(0).setEnabled(False)
+
+        # Add parent process option if available
+        if hasattr(con, 'process_tree') and con.process_tree and len(con.process_tree) > 1:
+            parent_path = con.process_tree[1].key
+            combo.addItem(QC.translate("popups", "from parent process {0}").format(os.path.basename(parent_path)), _constants.FIELD_PROC_PARENT_PATH)
+
+        # Add grandparent process option if available
+        if hasattr(con, 'process_tree') and con.process_tree and len(con.process_tree) > 2:
+            grandparent_path = con.process_tree[2].key
+            combo.addItem(QC.translate("popups", "from grandparent process {0}").format(os.path.basename(grandparent_path)), _constants.FIELD_PROC_GRANDPARENT_PATH)
 
         combo.addItem(QC.translate("popups", "from this command line"), _constants.FIELD_PROC_ARGS)
 

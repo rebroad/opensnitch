@@ -42,6 +42,7 @@ const (
 	OpProcessID           = Operand("process.id")
 	OpProcessPath         = Operand("process.path")
 	OpProcessParentPath   = Operand("process.parent.path")
+	OpProcessGrandparentPath = Operand("process.grandparent.path")
 	OpProcessCmd          = Operand("process.command")
 	OpProcessEnvPrefix    = Operand("process.env.")
 	OpProcessEnvPrefixLen = 12
@@ -346,6 +347,17 @@ func (o *Operator) Match(con *conman.Connection, hasChecksums bool) bool {
 		for pp := p.Parent; pp != nil; pp = pp.Parent {
 			if o.cb(pp.Path) {
 				return true
+			}
+		}
+		return false
+	} else if o.Operand == OpProcessGrandparentPath {
+		p := con.Process
+		// Skip the direct parent, go to grandparent
+		if p.Parent != nil && p.Parent.Parent != nil {
+			for pp := p.Parent.Parent; pp != nil; pp = pp.Parent {
+				if o.cb(pp.Path) {
+					return true
+				}
 			}
 		}
 		return false

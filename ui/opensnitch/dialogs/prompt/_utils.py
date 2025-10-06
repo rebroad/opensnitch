@@ -33,20 +33,19 @@ def get_popup_message(is_local, node, app_name, con):
     """
     app_name = truncate_text(app_name)
 
-3    # Add process hierarchy information to the message
+    # Add process hierarchy information to the message
     hierarchy_info = ""
     if hasattr(con, 'process_tree') and con.process_tree:
         try:
             process_tree = list(con.process_tree)
-            process_tree.reverse()
 
-            # Show up to 2 levels of hierarchy in the message
+            # Show up to 2 levels of hierarchy in the message (skip current process)
             hierarchy_parts = []
-            for i, path in enumerate(process_tree[:2]):
+            for i, item in enumerate(process_tree[1:3]):  # Skip current process, show up to 2 parent levels
                 if i == 0:
-                    hierarchy_parts.append(f"Parent: {path.key}")
+                    hierarchy_parts.append(f"Parent: {item.key} (PID: {item.value})")
                 elif i == 1:
-                    hierarchy_parts.append(f"Grandparent: {path.key}")
+                    hierarchy_parts.append(f"Grandparent: {item.key} (PID: {item.value})")
 
             if hierarchy_parts:
                 hierarchy_info = f"<br><small>Process hierarchy: {' → '.join(hierarchy_parts)}</small>"
@@ -185,6 +184,20 @@ def set_default_target(combo, con, cfg, app_name, app_args):
 def get_combo_operator(data, comboText, con):
     if data == _constants.FIELD_PROC_PATH:
         return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_PATH, con.process_path
+
+    elif data == _constants.FIELD_PROC_PARENT_PATH:
+        # Get parent process path from process tree
+        if hasattr(con, 'process_tree') and con.process_tree and len(con.process_tree) > 1:
+            parent_path = con.process_tree[1].key  # Second entry is parent
+            return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_PARENT_PATH, parent_path
+        return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_PARENT_PATH, ""
+
+    elif data == _constants.FIELD_PROC_GRANDPARENT_PATH:
+        # Get grandparent process path from process tree
+        if hasattr(con, 'process_tree') and con.process_tree and len(con.process_tree) > 2:
+            grandparent_path = con.process_tree[2].key  # Third entry is grandparent
+            return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_GRANDPARENT_PATH, grandparent_path
+        return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_GRANDPARENT_PATH, ""
 
     elif data == _constants.FIELD_PROC_ARGS:
         # this should not happen
