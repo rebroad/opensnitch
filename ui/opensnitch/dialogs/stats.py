@@ -1559,9 +1559,16 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         if cur_idx == self.TAB_MAIN or cur_idx == self.TAB_NODES or self.IN_DETAIL_VIEW[cur_idx]:
             return
 
-        msg = QC.translate("stats", "    You are about to delete this rule.    ")
-        if cur_idx != self.TAB_RULES:
-            msg = QC.translate("stats", "    You are about to delete this entry.    ")
+        # Handle multiple selection messages
+        if len(selection) > 1:
+            if cur_idx == self.TAB_RULES:
+                msg = QC.translate("stats", "    You are about to delete {0} rules.    ").format(len(selection))
+            else:
+                msg = QC.translate("stats", "    You are about to delete {0} entries.    ").format(len(selection))
+        else:
+            msg = QC.translate("stats", "    You are about to delete this rule.    ")
+            if cur_idx != self.TAB_RULES:
+                msg = QC.translate("stats", "    You are about to delete this entry.    ")
 
         ret = Message.yes_no(msg,
             QC.translate("stats", "    Are you sure?"),

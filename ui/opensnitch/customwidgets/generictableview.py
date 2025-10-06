@@ -351,6 +351,28 @@ class GenericTableView(QTableView):
         self.mousePressed = not rightBtnPressed
         flags = QItemSelectionModel.SelectionFlag.Rows | QItemSelectionModel.SelectionFlag.SelectCurrent
 
+        # Handle Shift+Click for range selection
+        if self.shiftPressed and not rightBtnPressed:
+            # Get the current selection to find the anchor point
+            currentSelection = self.selectionModel().currentIndex()
+            if currentSelection.isValid():
+                anchorRow = currentSelection.row()
+                startRow = min(anchorRow, row)
+                endRow = max(anchorRow, row)
+
+                # Select all rows in the range
+                for r in range(startRow, endRow + 1):
+                    rangeItem = self.model().index(r, self.trackingCol)
+                    if rangeItem.data() is not None:
+                        self._rows_selection[rangeItem.data()] = self.getRowCells(r)
+
+                # Set the selection range
+                startIndex = self.model().index(startRow, 0)
+                endIndex = self.model().index(endRow, self.model().columnCount() - 1)
+                selection = QItemSelection(startIndex, endIndex)
+                self.selectionModel().select(selection, QItemSelectionModel.SelectionFlag.Select | QItemSelectionModel.SelectionFlag.Rows)
+                return
+
         # 1. if ctrl is pressed, select / deselect current row
         # 2. if ctrl is not pressed:
         #   1. discard previous selection
