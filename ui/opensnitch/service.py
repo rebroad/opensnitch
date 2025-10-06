@@ -633,6 +633,9 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
                 if event.unixnano in self._last_stats[addr]:
                     continue
                 main_need_refresh=True
+                # Debug: Print rule information
+                rule_name = event.rule.name if event.rule.name and event.rule.name != "<nil>" else "No matching rule"
+                print(f"[DEBUG] Event rule name: '{event.rule.name}' -> processed: '{rule_name}', action: '{event.rule.action}'")
                 db.insert("connections",
                         "(time, node, action, protocol, src_ip, src_port, dst_ip, dst_host, dst_port, uid, pid, process, process_args, process_cwd, rule)",
                         (str(datetime.fromtimestamp(event.unixnano/1000000000)), peer, event.rule.action,
@@ -640,12 +643,12 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
                             event.connection.dst_ip, event.connection.dst_host, str(event.connection.dst_port),
                             str(event.connection.user_id), str(event.connection.process_id),
                             event.connection.process_path, " ".join(event.connection.process_args),
-                            event.connection.process_cwd, event.rule.name),
+                            event.connection.process_cwd, rule_name),
                             action_on_conflict="IGNORE"
                         )
                 self._nodes.update_rule_time(
                     str(datetime.fromtimestamp(event.unixnano/1000000000)),
-                    event.rule.name,
+                    rule_name,
                     peer
                 )
             db.commit()
