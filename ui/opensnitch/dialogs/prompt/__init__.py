@@ -432,6 +432,40 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             _utils.set_elide_text(self.appNameLabel, "%s" % app_name, max_size=42)
             self.appNameLabel.setToolTip(app_name)
 
+        # Show process hierarchy (parent and grandparent processes)
+        if hasattr(con, 'process_tree') and con.process_tree:
+            try:
+                # Reverse the tree to show from parent to grandparent
+                process_tree = list(con.process_tree)
+                process_tree.reverse()
+
+                # Build hierarchy string
+                hierarchy_parts = []
+                for i, path in enumerate(process_tree[:3]):  # Show up to 3 levels (parent, grandparent, great-grandparent)
+                    if i == 0:
+                        hierarchy_parts.append(f"Parent: {path.key}")
+                    elif i == 1:
+                        hierarchy_parts.append(f"Grandparent: {path.key}")
+                    else:
+                        hierarchy_parts.append(f"Great-grandparent: {path.key}")
+
+                hierarchy_text = " → ".join(hierarchy_parts)
+
+                # Update the app name label to include hierarchy
+                if app_name != "":
+                    enhanced_name = f"{app_name}\n{hierarchy_text}"
+                    _utils.set_elide_text(self.appNameLabel, enhanced_name, max_size=42)
+                    self.appNameLabel.setToolTip(enhanced_name)
+                else:
+                    # For unknown processes, show the hierarchy
+                    hierarchy_display = f"Unknown process\n{hierarchy_text}"
+                    self.appNameLabel.setText(hierarchy_display)
+                    self.appNameLabel.setToolTip(hierarchy_display)
+
+            except Exception as e:
+                # If there's an error processing the tree, just continue normally
+                pass
+
         #if len(self._con.process_args) == 0 or self._con.process_args[0] == "":
 
         self.cwdLabel.setToolTip("%s %s" % (QC.translate("popups", "Process launched from:"), con.process_cwd))

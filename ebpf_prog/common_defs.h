@@ -7,10 +7,10 @@
 #include <uapi/linux/bpf.h>
 #include "bpf_headers/bpf_helpers.h"
 #include "bpf_headers/bpf_tracing.h"
-//#include <bpf/bpf_core_read.h> 
+//#include <bpf/bpf_core_read.h>
 
 #define BUF_SIZE_MAP_NS 256
-#define MAPSIZE 12000
+#define MAPSIZE 50000
 
 #ifndef htonll
   #define htonll(x) cpu_to_be64(x)
@@ -25,7 +25,7 @@
 
 // even though we only need 32 bits of pid, on x86_32 ebpf verifier complained when pid type was set to u32
 typedef u64 pid_size_t;
-typedef u64 uid_size_t; 
+typedef u64 uid_size_t;
 
 enum bpf_pin_type {
     PIN_NONE = 0,

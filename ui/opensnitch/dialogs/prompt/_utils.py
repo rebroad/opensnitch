@@ -33,7 +33,27 @@ def get_popup_message(is_local, node, app_name, con):
     """
     app_name = truncate_text(app_name)
 
-    message = "<b>{0}</b>".format(app_name)
+3    # Add process hierarchy information to the message
+    hierarchy_info = ""
+    if hasattr(con, 'process_tree') and con.process_tree:
+        try:
+            process_tree = list(con.process_tree)
+            process_tree.reverse()
+
+            # Show up to 2 levels of hierarchy in the message
+            hierarchy_parts = []
+            for i, path in enumerate(process_tree[:2]):
+                if i == 0:
+                    hierarchy_parts.append(f"Parent: {path.key}")
+                elif i == 1:
+                    hierarchy_parts.append(f"Grandparent: {path.key}")
+
+            if hierarchy_parts:
+                hierarchy_info = f"<br><small>Process hierarchy: {' → '.join(hierarchy_parts)}</small>"
+        except Exception:
+            pass
+
+    message = "<b>{0}</b>{1}".format(app_name, hierarchy_info)
     if not is_local:
         message = QC.translate("popups", "<b>Remote</b> process {0} running on <b>{1}</b>".format(
             message,

@@ -20,9 +20,29 @@ import (
 // Additionally, if the process has been found by swapping fields, it'll return
 // a flag indicating it.
 func GetPid(proto string, srcPort uint, srcIP net.IP, dstIP net.IP, dstPort uint) (*procmon.Process, bool, error) {
+	// Try eBPF lookup first
 	if proc := getPidFromEbpf(proto, srcPort, srcIP, dstIP, dstPort); proc != nil {
 		return proc, false, nil
 	}
+
+	// Try with swapped source/destination (for response packets)
+	if proc := getPidFromEbpf(proto, dstPort, dstIP, srcIP, srcPort); proc != nil {
+		log.Debug("[ebpf conn] found process with swapped fields: %s", proc.Path)
+		return proc, true, nil // Return swap flag
+	}
+
+	// Try with 0.0.0.0 source (common with UDP)
+	if proc := getPidFromEbpf(proto, srcPort, net.ParseIP("0.0.0.0"), dstIP, dstPort); proc != nil {
+		log.Debug("[ebpf conn] found process with 0.0.0.0 source: %s", proc.Path)
+		return proc, false, nil
+	}
+
+	// Try with 0.0.0.0 destination (common with localhost)
+	if proc := getPidFromEbpf(proto, srcPort, srcIP, net.ParseIP("0.0.0.0"), dstPort); proc != nil {
+		log.Debug("[ebpf conn] found process with 0.0.0.0 destination: %s", proc.Path)
+		return proc, false, nil
+	}
+
 	if findAddressInLocalAddresses(dstIP) {
 		// NOTE:
 		// Sometimes we may receive response packets instead of new outbound connections:
@@ -197,6 +217,13 @@ func findConnProcess(value *networkEventT, connKey string) (proc *procmon.Proces
 	comm := byteArrayToString(value.Comm[:])
 	proc = procmon.NewProcess(int(value.Pid), comm)
 	proc.UID = int(value.UID)
+
+	// Try to get more process details even if not in events cache
+	if err := proc.GetDetails(); err != nil {
+		log.Debug("[ebpf conn] could not get process details for PID %d: %s", proc.ID, err)
+		// Continue anyway with basic info
+	}
+
 	procmon.EventsCache.Add(proc)
 	procmon.EventsCache.Update(proc, nil)
 	log.Debug("[ebpf conn] not in cache, NOR in execEvents: %s, %d -> %s -> %s", connKey, proc.ID, proc.Path, proc.Args)
