@@ -176,11 +176,11 @@ class Rules(QObject):
         )
 
     def update_time(self, time, name, addr):
-        """Updates the time of a rule, whenever a new connection matched a
+        """Updates the time and usage count of a rule, whenever a new connection matched a
         rule.
         """
         self._db.update("rules",
-                        "time=?",
+                        "time=?, uses=uses+1",
                         (time, name, addr),
                         "name=? AND node=?",
                         action_on_conflict="OR REPLACE"

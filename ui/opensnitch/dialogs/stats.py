@@ -89,6 +89,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     COL_R_OP_TYPE = 6
     COL_R_OP_OPERAND = 7
     COL_R_CREATED = 8
+    COL_R_USES = 9
 
     # alerts
     COL_ALERT_TYPE = 2
@@ -231,8 +232,9 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     "enabled as Enabled," \
                     "action as Action," \
                     "duration as Duration," \
-                    "description as Description, " \
-                    "created as Created",
+                    "description as Description," \
+                    "created as Created," \
+                    "uses as Uses",
             "header_labels": [],
             "last_order_by": "2",
             "last_order_to": 0,
@@ -675,6 +677,12 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         rules_view = self.TABLES[self.TAB_RULES]['view']
         rules_view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         rules_view.verticalHeader().setDefaultSectionSize(25)  # Minimum row height
+
+        # Enable column reordering for Rules table
+        rules_header = rules_view.horizontalHeader()
+        rules_header.setSectionsMovable(True)
+        rules_header.setDragEnabled(True)
+        rules_header.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
         self.TABLES[self.TAB_FIREWALL]['view'] = self._setup_table(QtWidgets.QTableView, self.fwTable, "firewall",
                 model=FirewallTableModel("firewall"),
                 verticalScrollBar=None,
@@ -2543,7 +2551,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     def _refresh_active_table(self):
         cur_idx = self.tabWidget.currentIndex()
         model = self._get_active_table().model()
-        lastQuery = model.query().lastQuery()
+        lastQuery = str(model.query().lastQuery())
         if "LIMIT" not in lastQuery:
             lastQuery += self._get_limit()
         self.setQuery(model, lastQuery)
@@ -3656,11 +3664,55 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         if header != None:
             header.sortIndicatorChanged.connect(self._cb_table_header_clicked)
 
+            # Enable column reordering by dragging
+            header.setSectionsMovable(True)
+            header.setDragEnabled(True)
+            header.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
+
             for _, col in enumerate(resize_cols):
                 header.setSectionResizeMode(col, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
         cur_idx = self.tabWidget.currentIndex()
         self._cfg.setSettings("{0}{1}".format(Config.STATS_VIEW_DETAILS_COL_STATE, cur_idx), header.saveState())
+        return tableWidget
+
+    def _setup_rules_table_with_usage(self):
+        """Setup Rules table with column reordering"""
+        tableWidget = self.rulesTable
+        tableWidget.setSortingEnabled(True)
+
+        # Create model
+        model = GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels'])
+        tableWidget.setModel(model)
+
+        # Set up delegate
+        delegate = self.TABLES[self.TAB_RULES]['delegate']
+        if delegate != None:
+            action = self._actions.get(delegate)
+            if action != None:
+                tableWidget.setItemDelegate(ColorizedDelegate(tableWidget, actions=action))
+
+        # Enable column reordering
+        header = tableWidget.horizontalHeader()
+        if header != None:
+            header.sortIndicatorChanged.connect(self._cb_table_header_clicked)
+            header.setSectionsMovable(True)
+            header.setDragEnabled(True)
+            header.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
+
+        # Set up scrollbar
+        if self.rulesScrollBar != None:
+            tableWidget.setVerticalScrollBar(self.rulesScrollBar)
+            tableWidget.verticalScrollBar().sliderPressed.connect(self._cb_scrollbar_pressed)
+            tableWidget.verticalScrollBar().sliderReleased.connect(self._cb_scrollbar_released)
+
+        # Set up tracking column
+        tableWidget.setTrackingColumn(self.COL_R_NAME)
+
+        # Save column state
+        cur_idx = self.tabWidget.currentIndex()
+        self._cfg.setSettings("{0}{1}".format(Config.STATS_VIEW_DETAILS_COL_STATE, cur_idx), header.saveState())
+
         return tableWidget
 
     def update_interception_status(self, enabled):

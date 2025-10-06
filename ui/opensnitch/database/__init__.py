@@ -23,7 +23,7 @@ class Database:
             }
 
     # increase accordingly whenever the schema is updated
-    DB_VERSION = 3
+    DB_VERSION = 4
 
     @staticmethod
     def instance():
@@ -184,6 +184,7 @@ class Database:
                 "description text, " \
                 "nolog text, " \
                 "created text, " \
+                "uses integer DEFAULT 0, " \
                 "UNIQUE(node, name)"
                 ")", self.db)
         q.exec()

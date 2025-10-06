@@ -32,6 +32,7 @@ class RuleFields():
     Description = 11
     NoLog = 12
     Created = 13
+    Uses = 14
 
 class AlertFields():
     Time = 0
