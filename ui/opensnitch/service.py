@@ -604,6 +604,8 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
 
     def _populate_stats(self, db, proto, addr, stats):
         main_need_refresh = False
+        with open("/tmp/opensnitch_debug.log", "a") as f:
+            f.write(f"[DEBUG] _populate_stats called with {len(stats.events)} events from {addr}\n")
         details_need_refresh = False
         try:
             if db == None:
@@ -627,15 +629,44 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
 
             if addr not in self._last_stats:
                 self._last_stats[addr] = []
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] Initialized _last_stats for {addr}\n")
+            else:
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] _last_stats[{addr}] has {len(self._last_stats[addr])} entries\n")
+
+            # Debug: Check what's currently in the database
+            try:
+                q = db.get_new_qsql_model()
+                q.setQuery("SELECT rule, action, process FROM connections ORDER BY time DESC LIMIT 5", db.get_db())
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] Current database contents (last 5 rows):\n")
+                    row_count = q.rowCount()
+                    for i in range(row_count):
+                        rule = q.record(i).value(0)
+                        action = q.record(i).value(1)
+                        process = q.record(i).value(2)
+                        f.write(f"  Rule: '{rule}', Action: '{action}', Process: '{process}'\n")
+                    if row_count == 0:
+                        f.write("  No rows found in database\n")
+            except Exception as e:
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] Database query error: {e}\n")
 
             db.transaction()
             for event in stats.events:
                 if event.unixnano in self._last_stats[addr]:
+                    with open("/tmp/opensnitch_debug.log", "a") as f:
+                        f.write(f"[DEBUG] Skipping duplicate event: {event.unixnano}\n")
                     continue
                 main_need_refresh=True
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] Processing new event: {event.unixnano}\n")
                 # Debug: Print rule information
                 rule_name = event.rule.name if event.rule.name and event.rule.name != "<nil>" else "No matching rule"
-                print(f"[DEBUG] Event rule name: '{event.rule.name}' -> processed: '{rule_name}', action: '{event.rule.action}'")
+                with open("/tmp/opensnitch_debug.log", "a") as f:
+                    f.write(f"[DEBUG] Event rule name: '{event.rule.name}' -> processed: '{rule_name}', action: '{event.rule.action}'\n")
+                    f.write(f"[DEBUG] Event details: process='{event.connection.process_path}', dst='{event.connection.dst_ip}:{event.connection.dst_port}'\n")
                 db.insert("connections",
                         "(time, node, action, protocol, src_ip, src_port, dst_ip, dst_host, dst_port, uid, pid, process, process_args, process_cwd, rule)",
                         (str(datetime.fromtimestamp(event.unixnano/1000000000)), peer, event.rule.action,
@@ -654,9 +685,12 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
             db.commit()
 
             details_need_refresh = self._populate_stats_details(db, addr, stats)
-            self._last_stats[addr] = []
+            # Only add events that were actually processed (not skipped as duplicates)
+            processed_events = []
             for event in stats.events:
-                self._last_stats[addr].append(event.unixnano)
+                if event.unixnano not in self._last_stats[addr]:
+                    processed_events.append(event.unixnano)
+            self._last_stats[addr] = processed_events
         except Exception as e:
             print("_populate_stats() exception: ", e)
 
