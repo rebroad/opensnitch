@@ -670,6 +670,11 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 order_by="2",
                 sort_direction=self.SORT_ORDER[0],
                 tracking_column=self.COL_R_NAME)
+
+        # Set dynamic row height for Rules table based on Description column content
+        rules_view = self.TABLES[self.TAB_RULES]['view']
+        rules_view.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        rules_view.verticalHeader().setDefaultSectionSize(25)  # Minimum row height
         self.TABLES[self.TAB_FIREWALL]['view'] = self._setup_table(QtWidgets.QTableView, self.fwTable, "firewall",
                 model=FirewallTableModel("firewall"),
                 verticalScrollBar=None,

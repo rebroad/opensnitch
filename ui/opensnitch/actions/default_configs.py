@@ -125,6 +125,13 @@ rulesDelegateConfig = {
                     "color": "purple",
                     "bgcolor": "",
                     "alignment": ["center"]
+                    },
+                    {
+                    "text": [""],
+                    "cols": [6],
+                    "color": "black",
+                    "bgcolor": "",
+                    "alignment": ["left", "top"]
                     }
             ],
             "rows": []
