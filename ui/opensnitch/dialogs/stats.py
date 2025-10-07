@@ -394,7 +394,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         self.COL_STR_UPTIME = QC.translate("stats", "Uptime", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_VERSION = QC.translate("stats", "Version", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_RULES_NUM = QC.translate("stats", "Rules", "This is a word, without spaces and symbols.").replace(" ", "")
-        self.COL_STR_TIME = QC.translate("stats", "Time", "This is a word, without spaces and symbols.").replace(" ", "")
+        self.COL_STR_TIME = QC.translate("stats", "Lastused", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_CREATED = QC.translate("stats", "Created", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_ACTION = QC.translate("stats", "Action", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_DURATION = QC.translate("stats", "Duration", "This is a word, without spaces and symbols.").replace(" ", "")
@@ -593,6 +593,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.COL_STR_DURATION,
             self.COL_STR_DESCRIPTION,
             self.COL_STR_CREATED,
+            "Uses",
         ]
 
         self.TABLES[self.TAB_ALERTS]['header_labels'] = [
