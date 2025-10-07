@@ -585,7 +585,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         ]
 
         self.TABLES[self.TAB_RULES]['header_labels'] = [
-            self.COL_STR_TIME,
+            "Last used",  # Display version with space
             self.COL_STR_NODE,
             self.COL_STR_NAME,
             self.COL_STR_ENABLED,
