@@ -370,7 +370,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 "node as Node, " \
                 "type as Type, " \
                 "substr(what, 0, 128) as What, " \
-                "substr(body, 0, 128) as Description ",
+                "substr(body, 0, 128) as Description, " \
+                "priority as Priority",
             "header_labels": [],
             "last_order_by": "1",
             "last_order_to": 0,
@@ -2280,12 +2281,28 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         self._rules_dialog.new_rule()
 
     def _cb_edit_rule_clicked(self):
-        cur_idx = self.tabWidget.currentIndex()
-        records = self._get_rule(self.TABLES[cur_idx]['label'].text(), self.nodeRuleLabel.text())
-        if records == None:
-            return
+        try:
+            cur_idx = self.tabWidget.currentIndex()
+            rule_name = self.TABLES[cur_idx]['label'].text()
+            node_name = self.nodeRuleLabel.text()
 
-        self._rules_dialog.edit_rule(records, self.nodeRuleLabel.text())
+            if not rule_name or not node_name:
+                print("[stats dialog] edit rule: missing rule name or node name")
+                return
+
+            records = self._get_rule(rule_name, node_name)
+            if records == None:
+                print("[stats dialog] edit rule: no records found for", rule_name, node_name)
+                return
+
+            self._rules_dialog.edit_rule(records, node_name)
+        except Exception as e:
+            print(f"[stats dialog] edit rule error: {e}")
+            # Try to refresh the rules table to recover
+            try:
+                self._refresh_active_table()
+            except Exception as refresh_error:
+                print(f"[stats dialog] refresh error: {refresh_error}")
 
     def _cb_del_rule_clicked(self):
         ret = Message.yes_no(
@@ -2499,15 +2516,23 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         """
         get rule records, given the name of the rule and the node
         """
-        cur_idx = self.tabWidget.currentIndex()
-        records = self._db.get_rule(rule_name, node_name)
-        if records.next() == False:
-            print("[stats dialog] edit rule, no records: ", rule_name, node_name)
-            if self.TABLES[cur_idx]['cmd'] != None:
-                self.TABLES[cur_idx]['cmd'].click()
-            return None
+        try:
+            cur_idx = self.tabWidget.currentIndex()
+            records = self._db.get_rule(rule_name, node_name)
+            if records is None:
+                print("[stats dialog] get_rule: database query returned None")
+                return None
 
-        return records
+            if records.next() == False:
+                print("[stats dialog] edit rule, no records: ", rule_name, node_name)
+                if self.TABLES[cur_idx]['cmd'] != None:
+                    self.TABLES[cur_idx]['cmd'].click()
+                return None
+
+            return records
+        except Exception as e:
+            print(f"[stats dialog] get_rule error: {e}")
+            return None
 
     def _get_filter_line_clause(self, idx, text):
         if text == "":
@@ -2549,13 +2574,37 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         return " ORDER BY %s %s" % (order_field, self.SORT_ORDER[self.TABLES[cur_idx]['last_order_to']])
 
     def _refresh_active_table(self):
-        cur_idx = self.tabWidget.currentIndex()
-        model = self._get_active_table().model()
-        lastQuery = str(model.query().lastQuery())
-        if "LIMIT" not in lastQuery:
-            lastQuery += self._get_limit()
-        self.setQuery(model, lastQuery)
-        self.TABLES[cur_idx]['view'].refresh()
+        try:
+            cur_idx = self.tabWidget.currentIndex()
+            active_table = self._get_active_table()
+            if active_table is None:
+                print("[stats dialog] refresh: no active table found")
+                return
+
+            model = active_table.model()
+            if model is None:
+                print("[stats dialog] refresh: no model found")
+                return
+
+            lastQuery = str(model.query().lastQuery())
+            if "LIMIT" not in lastQuery:
+                lastQuery += self._get_limit()
+            self.setQuery(model, lastQuery)
+            self.TABLES[cur_idx]['view'].refresh()
+        except Exception as e:
+            print(f"[stats dialog] refresh error: {e}")
+            # Try to reinitialize the table
+            try:
+                self._setup_table(QtWidgets.QTableView, self.rulesTable, "rules",
+                        fields=self.TABLES[self.TAB_RULES]['display_fields'],
+                        model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
+                        verticalScrollBar=self.rulesScrollBar,
+                        delegate=self.TABLES[self.TAB_RULES]['delegate'],
+                        order_by="2",
+                        sort_direction=self.SORT_ORDER[0],
+                        tracking_column=self.COL_R_NAME)
+            except Exception as setup_error:
+                print(f"[stats dialog] table setup error: {setup_error}")
 
     def _get_active_table(self):
         if self.tabWidget.currentIndex() == self.TAB_RULES and self.fwTable.isVisible():
@@ -3796,10 +3845,23 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             return
         with self._lock:
             try:
+                if model is None:
+                    print("[stats dialog] setQuery: model is None")
+                    return
+
+                if q is None or q.strip() == "":
+                    print("[stats dialog] setQuery: empty query")
+                    return
+
                 model.query().clear()
                 model.setQuery(q, self._db_sqlite)
                 if model.lastError().isValid():
                     print("setQuery() error: ", model.lastError().text())
+                    # Try to recover with a simple query
+                    try:
+                        model.setQuery("SELECT * FROM rules LIMIT 1", self._db_sqlite)
+                    except Exception as recovery_error:
+                        print(f"[stats dialog] recovery query failed: {recovery_error}")
 
                 if self.tabWidget.currentIndex() != self.TAB_MAIN:
                     self.labelRowsCount.setText("{0}".format(model.totalRowCount))
@@ -3807,3 +3869,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     self.labelRowsCount.setText("")
             except Exception as e:
                 print(self._address, "setQuery() exception: ", e)
+                # Try to recover by refreshing the table
+                try:
+                    self._refresh_active_table()
+                except Exception as refresh_error:
+                    print(f"[stats dialog] refresh after setQuery error failed: {refresh_error}")
