@@ -677,8 +677,10 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
                             event.connection.process_cwd, rule_name),
                             action_on_conflict="IGNORE"
                         )
+                # Create clean timestamp without microseconds
+                clean_timestamp = datetime.fromtimestamp(event.unixnano/1000000000).strftime("%Y-%m-%d %H:%M:%S")
                 self._nodes.update_rule_time(
-                    str(datetime.fromtimestamp(event.unixnano/1000000000)),
+                    clean_timestamp,
                     rule_name,
                     peer
                 )
@@ -794,7 +796,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
             rule = kwargs['rule']
             proto, addr = self._get_peer(kwargs['peer'])
             node_addr = "{0}:{1}".format(proto, addr)
-            self._nodes.add_rule((datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            self._nodes.add_rule(None,  # time - leave blank until rule is actually used
                                  node_addr,
                                  rule.name, rule.description, str(rule.enabled),
                                  str(rule.precedence), str(rule.nolog), rule.action, rule.duration,
