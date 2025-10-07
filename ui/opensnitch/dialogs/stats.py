@@ -226,7 +226,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             "filterLine": None,
             "model": None,
             "delegate": "defaultRulesDelegateConfig",
-            "display_fields": "time as Time," \
+            "display_fields": "CASE WHEN uses > 0 THEN time ELSE NULL END as Time," \
                     "node as Node," \
                     "name as Name," \
                     "enabled as Enabled," \
