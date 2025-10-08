@@ -49,6 +49,10 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     LIMITS = ["LIMIT 50", "LIMIT 100", "LIMIT 200", "LIMIT 300", ""]
     LAST_GROUP_BY = ""
 
+    # Default sort settings for Rules tab (SQL uses 1-based column indexing)
+    RULES_DEFAULT_SORT_COLUMN = "2"  # Column 2 = Uses column in SQL (1-based)
+    RULES_DEFAULT_SORT_DIRECTION = 1  # Index into SORT_ORDER: 0=ASC, 1=DESC
+
     # general
     COL_TIME    = 0
     COL_NODE    = 1
@@ -80,16 +84,16 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     # stats
     COL_WHAT   = 0
 
-    # rules
-    COL_R_NODE = 1
-    COL_R_NAME = 2
-    COL_R_ENABLED = 3
-    COL_R_ACTION = 4
-    COL_R_DURATION = 5
-    COL_R_OP_TYPE = 6
-    COL_R_OP_OPERAND = 7
-    COL_R_CREATED = 8
-    COL_R_USES = 9
+    # rules (0-based column indices matching header_labels order)
+    COL_R_LAST_USED = 0
+    COL_R_USES = 1
+    COL_R_NODE = 2
+    COL_R_NAME = 3
+    COL_R_ENABLED = 4
+    COL_R_ACTION = 5
+    COL_R_DURATION = 6
+    COL_R_CREATED = 7
+    COL_R_DESCRIPTION = 8
 
     # alerts
     COL_ALERT_TYPE = 2
@@ -227,17 +231,17 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             "model": None,
             "delegate": "defaultRulesDelegateConfig",
             "display_fields": "CASE WHEN uses > 0 THEN time ELSE NULL END as Time," \
+                    "uses as Uses," \
                     "node as Node," \
                     "name as Name," \
                     "enabled as Enabled," \
                     "action as Action," \
                     "duration as Duration," \
-                    "description as Description," \
                     "created as Created," \
-                    "uses as Uses",
+                    "description as Description",
             "header_labels": [],
-            "last_order_by": "9",
-            "last_order_to": 1,
+            "last_order_by": RULES_DEFAULT_SORT_COLUMN,
+            "last_order_to": RULES_DEFAULT_SORT_DIRECTION,
             "tracking_column:": COL_R_NAME
         },
         TAB_HOSTS: {
@@ -394,7 +398,7 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         self.COL_STR_UPTIME = QC.translate("stats", "Uptime", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_VERSION = QC.translate("stats", "Version", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_RULES_NUM = QC.translate("stats", "Rules", "This is a word, without spaces and symbols.").replace(" ", "")
-        self.COL_STR_TIME = QC.translate("stats", "Lastused", "This is a word, without spaces and symbols.").replace(" ", "")
+        self.COL_STR_TIME = QC.translate("stats", "Time", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_CREATED = QC.translate("stats", "Created", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_ACTION = QC.translate("stats", "Action", "This is a word, without spaces and symbols.").replace(" ", "")
         self.COL_STR_DURATION = QC.translate("stats", "Duration", "This is a word, without spaces and symbols.").replace(" ", "")
@@ -586,14 +590,14 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
         self.TABLES[self.TAB_RULES]['header_labels'] = [
             "Last used",  # Display version with space
+            "Uses",
             self.COL_STR_NODE,
             self.COL_STR_NAME,
             self.COL_STR_ENABLED,
             self.COL_STR_ACTION,
             self.COL_STR_DURATION,
-            self.COL_STR_DESCRIPTION,
             self.COL_STR_CREATED,
-            "Uses",
+            self.COL_STR_DESCRIPTION,
         ]
 
         self.TABLES[self.TAB_ALERTS]['header_labels'] = [
@@ -666,15 +670,15 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 verticalScrollBar=self.verticalScrollBar,
                 sort_direction=self.SORT_ORDER[1],
                 delegate=self.TABLES[self.TAB_NODES]['delegate'])
-        print(f"[stats] Setting up Rules table with order_by=9, sort_direction={self.SORT_ORDER[1]}")
+        print(f"[stats] Setting up Rules table with order_by={self.RULES_DEFAULT_SORT_COLUMN}, sort_direction={self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION]}")
         print(f"[stats] TABLES[TAB_RULES] before setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
         self.TABLES[self.TAB_RULES]['view'] = self._setup_table(QtWidgets.QTableView, self.rulesTable, "rules",
                 fields=self.TABLES[self.TAB_RULES]['display_fields'],
                 model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                 verticalScrollBar=self.rulesScrollBar,
                 delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                order_by="9",
-                sort_direction=self.SORT_ORDER[1],
+                order_by=self.RULES_DEFAULT_SORT_COLUMN,
+                sort_direction=self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION],
                 tracking_column=self.COL_R_NAME)
         print(f"[stats] TABLES[TAB_RULES] after setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
 
@@ -2609,8 +2613,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                         model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                         verticalScrollBar=self.rulesScrollBar,
                         delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                        order_by="9",
-                        sort_direction=self.SORT_ORDER[1],
+                        order_by=self.RULES_DEFAULT_SORT_COLUMN,
+                        sort_direction=self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION],
                         tracking_column=self.COL_R_NAME)
             except Exception as setup_error:
                 print(f"[stats dialog] table setup error: {setup_error}")
