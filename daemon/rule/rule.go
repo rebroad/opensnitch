@@ -50,6 +50,7 @@ type Rule struct {
 	Enabled     bool     `json:"enabled"`
 	Precedence  bool     `json:"precedence"`
 	Nolog       bool     `json:"nolog"`
+	AvailableOperands string `json:"available_operands,omitempty"`
 }
 
 // Create creates a new rule object with the specified parameters.
@@ -109,6 +110,9 @@ func Deserialize(reply *protocol.Rule) (*Rule, error) {
 		Duration(reply.Duration),
 		operator,
 	)
+	
+	// Set the AvailableOperands field from the protobuf message
+	newRule.AvailableOperands = reply.AvailableOperands
 
 	if Type(reply.Operator.Type) == List {
 		newRule.Operator.Data = ""

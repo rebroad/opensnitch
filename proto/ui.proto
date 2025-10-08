@@ -162,6 +162,7 @@ message Rule {
     string action = 7;
     string duration = 8;
     Operator operator = 9;
+    string available_operands = 10;
 }
 
 /* Action is the list of actions sent or received via the Notifications channel.

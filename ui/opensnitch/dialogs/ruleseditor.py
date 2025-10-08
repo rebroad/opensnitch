@@ -546,6 +546,9 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             for op in self.rule.operator.list:
                 self._load_rule_operator(op)
 
+        # Populate fields with available operands data
+        self._populate_fields_from_available_operands()
+
         return True
 
     def _load_rule_operator(self, operator):
@@ -685,7 +688,51 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.md5Line.setEnabled(True)
             self.md5Line.setText(operator.data)
 
+    def _populate_fields_from_available_operands(self):
+        """Populate rule editor fields with data from available_operands JSON."""
+        if not hasattr(self.rule, 'available_operands') or not self.rule.available_operands:
+            return
 
+        try:
+            import json
+            operands = json.loads(self.rule.available_operands)
+
+            # Populate process path if not already set
+            if 'process_path' in operands and operands['process_path'] and not self.procLine.text():
+                self.procLine.setText(operands['process_path'])
+
+            # Populate process args if not already set
+            if 'process_args' in operands and operands['process_args'] and not self.cmdlineLine.text():
+                self.cmdlineLine.setText(operands['process_args'])
+
+            # Populate user ID if not already set
+            if 'user_id' in operands and operands['user_id'] and not self.uidCombo.currentText():
+                self.uidCombo.setCurrentText(operands['user_id'])
+
+            # Populate destination IP if not already set
+            if 'dst_ip' in operands and operands['dst_ip'] and not self.dstIPCombo.currentText():
+                self.dstIPCombo.setCurrentText(operands['dst_ip'])
+
+            # Populate destination port if not already set
+            if 'dst_port' in operands and operands['dst_port'] and not self.dstPortLine.text():
+                self.dstPortLine.setText(operands['dst_port'])
+
+            # Populate destination host if not already set
+            if 'dst_host' in operands and operands['dst_host'] and not self.dstHostLine.text():
+                self.dstHostLine.setText(operands['dst_host'])
+
+            # Populate parent process path if not already set
+            if 'process_parent_path' in operands and operands['process_parent_path']:
+                # Note: Parent process fields will be added to the UI in a future update
+                pass
+
+            # Populate grandparent process path if not already set
+            if 'process_grandparent_path' in operands and operands['process_grandparent_path']:
+                # Note: Grandparent process fields will be added to the UI in a future update
+                pass
+
+        except Exception as e:
+            print(self.LOG_TAG, "exception parsing available_operands:", e)
 
     def _load_nodes(self, addr=None):
         try:
@@ -1092,23 +1139,8 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                         "sensitive": self.sensitiveCheck.isChecked()
                         })
 
-        if self.pidCheck.isChecked():
-            if self.pidLine.text() == "":
-                return False, QC.translate("rules", "PID field can not be empty")
-
-            self.rule.operator.operand = Config.OPERAND_PROCESS_ID
-            self.rule.operator.data = self.pidLine.text()
-            rule_data.append(
-                    {
-                        'type': Config.RULE_TYPE_SIMPLE,
-                        'operand': Config.OPERAND_PROCESS_ID,
-                        'data': self.pidLine.text(),
-                        "sensitive": self.sensitiveCheck.isChecked()
-                        })
-            if self._is_regex(self.pidLine.text()):
-                rule_data[len(rule_data)-1]['type'] = Config.RULE_TYPE_REGEXP
-                if self._is_valid_regex(self.pidLine.text()) == False:
-                    return False, QC.translate("rules", "PID field regexp error")
+        # PID field removed - PIDs are ephemeral and not useful for rules
+        # Parent/grandparent process fields will be added to the UI in a future update
 
         if self.dstListsCheck.isChecked():
             error = self._is_valid_list_path(self.dstListsLine)

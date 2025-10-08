@@ -46,6 +46,7 @@ class Rule():
         rule.operator.data = "" if records.value(RuleFields.OpData) == None else str(records.value(RuleFields.OpData))
         rule.description = records.value(RuleFields.Description)
         rule.nolog = Rule.to_bool(records.value(RuleFields.NoLog))
+        rule.available_operands = records.value(RuleFields.AvailableOperands) or ""
         created = int(datetime.now().timestamp())
         if records.value(RuleFields.Created) != "":
             created = int(datetime.strptime(
@@ -90,15 +91,15 @@ class Rules(QObject):
         QObject.__init__(self)
         self._db = Database.instance()
 
-    def add(self, time, node, name, description, enabled, precedence, nolog, action, duration, op_type, op_sensitive, op_operand, op_data, created):
+    def add(self, time, node, name, description, enabled, precedence, nolog, action, duration, op_type, op_sensitive, op_operand, op_data, created, available_operands=''):
         # don't add rule if the user has selected to exclude temporary
         # rules
         if duration in Config.RULES_DURATION_FILTER:
             return
 
         self._db.insert("rules",
-                  "(time, node, name, description, enabled, precedence, nolog, action, duration, operator_type, operator_sensitive, operator_operand, operator_data, created)",
-                  (time, node, name, description, enabled, precedence, nolog, action, duration, op_type, op_sensitive, op_operand, op_data, created),
+                  "(time, node, name, description, enabled, precedence, nolog, action, duration, operator_type, operator_sensitive, operator_operand, operator_data, created, available_operands)",
+                  (time, node, name, description, enabled, precedence, nolog, action, duration, op_type, op_sensitive, op_operand, op_data, created, available_operands),
                         action_on_conflict="REPLACE")
 
     def add_rules(self, addr, rules):
@@ -112,6 +113,11 @@ class Rules(QObject):
 
                     r.operator.data = json.dumps(rjson.get('operator').get('list'))
 
+                # Extract available operands if present
+                available_operands_json = ''
+                if hasattr(r, 'available_operands') and r.available_operands:
+                    available_operands_json = r.available_operands
+
                 self.add(datetime.now().strftime(DBDateFieldFormat),
                          addr,
                          r.name, r.description, str(r.enabled),
@@ -119,7 +125,8 @@ class Rules(QObject):
                          r.operator.type,
                          str(r.operator.sensitive),
                          r.operator.operand, r.operator.data,
-                         str(datetime.fromtimestamp(r.created).strftime(DBDateFieldFormat)))
+                         str(datetime.fromtimestamp(r.created).strftime(DBDateFieldFormat)),
+                         available_operands_json)
 
             return True
         except Exception as e:

@@ -643,6 +643,29 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.checkDstIP.isChecked() or \
             self.checkSum.isChecked()
 
+    def _extract_all_criteria(self, con):
+        """Extract ALL available operands from a connection for storage with the rule."""
+        criteria = {}
+
+        # Process information
+        criteria['process_path'] = con.process_path if hasattr(con, 'process_path') else ''
+        criteria['process_args'] = ' '.join(con.process_args) if hasattr(con, 'process_args') and con.process_args else ''
+        criteria['user_id'] = str(con.user_id) if hasattr(con, 'user_id') else ''
+
+        # Process hierarchy
+        if hasattr(con, 'process_tree') and con.process_tree:
+            if len(con.process_tree) > 1:
+                criteria['process_parent_path'] = con.process_tree[1].key
+            if len(con.process_tree) > 2:
+                criteria['process_grandparent_path'] = con.process_tree[2].key
+
+        # Network information
+        criteria['dst_ip'] = con.dst_ip if hasattr(con, 'dst_ip') else ''
+        criteria['dst_port'] = str(con.dst_port) if hasattr(con, 'dst_port') else ''
+        criteria['dst_host'] = con.dst_host if hasattr(con, 'dst_host') else ''
+
+        return criteria
+
     def _send_rule(self):
         try:
             self._cfg.setSettings("promptDialog/geometry", self.saveGeometry())
@@ -669,6 +692,14 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
             rule_temp_name = _utils.get_rule_name(self._rule, self._is_list_rule())
             self._rule.name = rule_temp_name
+
+            # Extract all available criteria for storage with the rule
+            all_criteria = self._extract_all_criteria(self._con)
+
+            # Store available operands as a custom attribute for now
+            # This will be handled in the add_rules method
+            if all_criteria:
+                self._rule.available_operands = json.dumps(all_criteria)
 
             # TODO: move to a method
             data=[]
