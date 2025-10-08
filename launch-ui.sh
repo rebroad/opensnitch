@@ -9,6 +9,4 @@ cd /home/rebroad/src/opensnitch/ui
 source venv/bin/activate
 
 # Start the UI
-python bin/opensnitch-ui --socket unix:///tmp/osui.sock --background
-
-echo "OpenSnitch UI started!"
+python bin/opensnitch-ui --socket unix:///tmp/osui.sock &

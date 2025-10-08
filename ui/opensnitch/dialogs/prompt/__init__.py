@@ -425,9 +425,28 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.appPathLabel.setVisible(False)
             self.argsLabel.setVisible(False)
             self.argsLabel.setText("")
-            app_name = QC.translate("popups", "Unknown process %s" % con.process_path)
-            #with self._lock:
-            self.appNameLabel.setText(QC.translate("popups", "Outgoing connection"))
+
+            # Enhanced diagnostic info for unknown processes
+            diag_info = []
+            if con.process_path:
+                diag_info.append(f"Path: {con.process_path}")
+            if hasattr(con, 'process_id') and con.process_id:
+                diag_info.append(f"PID: {con.process_id}")
+            if hasattr(con, 'user_id') and con.user_id != 4294967295:  # Not the invalid UID
+                diag_info.append(f"UID: {con.user_id}")
+
+            # Check if we have any process args
+            if hasattr(con, 'process_args') and con.process_args and len(con.process_args) > 0:
+                args_str = " ".join(con.process_args)
+                if args_str:
+                    diag_info.append(f"Args: {args_str[:100]}")
+
+            diagnostic_text = " | ".join(diag_info) if diag_info else "No process information available"
+
+            app_name = QC.translate("popups", "Unknown process")
+            unknown_display = f"{app_name}\n{diagnostic_text}"
+            self.appNameLabel.setText(unknown_display)
+            self.appNameLabel.setToolTip(unknown_display)
         else:
             _utils.set_elide_text(self.appNameLabel, "%s" % app_name, max_size=42)
             self.appNameLabel.setToolTip(app_name)

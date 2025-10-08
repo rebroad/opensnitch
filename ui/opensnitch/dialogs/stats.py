@@ -1503,28 +1503,47 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _table_menu_change_rule_field(self, cur_idx, model, selection, field, value):
         if cur_idx == self.TAB_RULES and self.rulesTable.isVisible():
-            for row in selection:
-                rule_name = row[self.COL_R_NAME]
-                node_addr = row[self.COL_R_NODE]
+            try:
+                for row in selection:
+                    rule_name = row[self.COL_R_NAME]
+                    node_addr = row[self.COL_R_NODE]
+                    print(f"[stats] _table_menu_change_rule_field: changing {field} to {value} for rule {rule_name} on {node_addr}")
 
-                records = self._get_rule(rule_name, node_addr)
-                rule = Rule.new_from_records(records)
+                    records = self._get_rule(rule_name, node_addr)
+                    if records == None or records == -1:
+                        print(f"[stats] _table_menu_change_rule_field: rule not found: {rule_name}")
+                        continue
+                        
+                    rule = Rule.new_from_records(records)
 
-                self._db.update(table="rules", fields="{0}=?".format(field),
-                                values=[value], condition="name='{0}' AND node='{1}'".format(rule_name, node_addr),
-                                action_on_conflict="")
+                    self._db.update(table="rules", fields="{0}=?".format(field),
+                                    values=[value], condition="name='{0}' AND node='{1}'".format(rule_name, node_addr),
+                                    action_on_conflict="")
 
-                if field == "action":
-                    rule.action = value
-                elif field == "duration":
-                    rule.duration = value
-                elif field == "precedence":
-                    rule.precedence = value
+                    if field == "action":
+                        rule.action = value
+                    elif field == "duration":
+                        rule.duration = value
+                    elif field == "precedence":
+                        rule.precedence = value
 
-                noti = ui_pb2.Notification(type=ui_pb2.CHANGE_RULE, rules=[rule])
-                nid = self._nodes.send_notification(node_addr, noti, self._notification_callback)
-                if nid != None:
-                    self._notifications_sent[nid] = noti
+                    noti = ui_pb2.Notification(type=ui_pb2.CHANGE_RULE, rules=[rule])
+                    nid = self._nodes.send_notification(node_addr, noti, self._notification_callback)
+                    if nid != None:
+                        self._notifications_sent[nid] = noti
+                        print(f"[stats] _table_menu_change_rule_field: notification sent, id={nid}")
+                        
+                # Refresh the table after all changes
+                self._refresh_active_table()
+            except Exception as e:
+                print(f"[stats] _table_menu_change_rule_field exception: {e}")
+                import traceback
+                traceback.print_exc()
+                # Try to recover by refreshing the table
+                try:
+                    self._refresh_active_table()
+                except Exception as recovery_err:
+                    print(f"[stats] _table_menu_change_rule_field recovery failed: {recovery_err}")
         elif cur_idx == self.TAB_RULES and self.fwTable.isVisible():
             nodes_updated = []
             for idx in selection:
@@ -1546,22 +1565,37 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         enable_rule = False if is_rule_enabled == "True" else True
 
         if cur_idx == self.TAB_RULES and self.rulesTable.isVisible():
-            for row in selection:
-                rule_name = row[self.COL_R_NAME]
-                node_addr = row[self.COL_R_NODE]
+            try:
+                for row in selection:
+                    rule_name = row[self.COL_R_NAME]
+                    node_addr = row[self.COL_R_NODE]
+                    print(f"[stats] _table_menu_enable: toggling rule {rule_name} on node {node_addr}")
 
-                records = self._get_rule(rule_name, node_addr)
-                rule = Rule.new_from_records(records)
-                rule_type = ui_pb2.DISABLE_RULE if is_rule_enabled == "True" else ui_pb2.ENABLE_RULE
+                    records = self._get_rule(rule_name, node_addr)
+                    if records == None or records == -1:
+                        print(f"[stats] _table_menu_enable: rule not found: {rule_name}")
+                        continue
+                        
+                    rule = Rule.new_from_records(records)
+                    rule_type = ui_pb2.DISABLE_RULE if is_rule_enabled == "True" else ui_pb2.ENABLE_RULE
 
-                self._db.update(table="rules", fields="enabled=?",
-                                values=[rule_status], condition="name='{0}' AND node='{1}'".format(rule_name, node_addr),
-                                action_on_conflict="")
+                    self._db.update(table="rules", fields="enabled=?",
+                                    values=[rule_status], condition="name='{0}' AND node='{1}'".format(rule_name, node_addr),
+                                    action_on_conflict="")
 
-                noti = ui_pb2.Notification(type=rule_type, rules=[rule])
-                nid = self._nodes.send_notification(node_addr, noti, self._notification_callback)
-                if nid != None:
-                    self._notifications_sent[nid] = noti
+                    noti = ui_pb2.Notification(type=rule_type, rules=[rule])
+                    nid = self._nodes.send_notification(node_addr, noti, self._notification_callback)
+                    if nid != None:
+                        self._notifications_sent[nid] = noti
+            except Exception as e:
+                print(f"[stats] _table_menu_enable exception: {e}")
+                import traceback
+                traceback.print_exc()
+                # Try to recover by refreshing the table
+                try:
+                    self._refresh_active_table()
+                except Exception as recovery_err:
+                    print(f"[stats] _table_menu_enable recovery failed: {recovery_err}")
 
         elif cur_idx == self.TAB_RULES and self.fwTable.isVisible():
             nodes_updated = []
@@ -1614,11 +1648,22 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 self._notifications_sent[nid] = noti
 
         elif cur_idx == self.TAB_RULES and self.rulesTable.isVisible():
-            for row in selection:
-                node = row[self.COL_R_NODE]
-                name = row[self.COL_R_NAME]
-                self._del_rule(name, node)
-            self._refresh_active_table()
+            try:
+                for row in selection:
+                    node = row[self.COL_R_NODE]
+                    name = row[self.COL_R_NAME]
+                    print(f"[stats] _table_menu_delete: deleting rule {name} on node {node}")
+                    self._del_rule(name, node)
+                self._refresh_active_table()
+            except Exception as e:
+                print(f"[stats] _table_menu_delete exception: {e}")
+                import traceback
+                traceback.print_exc()
+                # Try to recover by refreshing the table
+                try:
+                    self._refresh_active_table()
+                except Exception as recovery_err:
+                    print(f"[stats] _table_menu_delete recovery failed: {recovery_err}")
 
         elif cur_idx == self.TAB_RULES and self.alertsTable.isVisible():
             for idx in selection:
@@ -1650,17 +1695,29 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _table_menu_edit(self, cur_idx, model, selection):
         if cur_idx == self.TAB_RULES and self.rulesTable.isVisible():
-            for row in selection:
-                node = row[self.COL_R_NODE]
-                name = row[self.COL_R_NAME]
-                records = self._get_rule(name, node)
-                if records == None or records == -1:
-                    Message.ok(QC.translate("stats", "New rule error"),
-                            QC.translate("stats", "Rule not found by that name and node"),
-                            QtWidgets.QMessageBox.Icon.Warning)
-                    return
-                self._rules_dialog.edit_rule(records, node)
-                break
+            try:
+                for row in selection:
+                    node = row[self.COL_R_NODE]
+                    name = row[self.COL_R_NAME]
+                    print(f"[stats] _table_menu_edit: editing rule {name} on node {node}")
+                    records = self._get_rule(name, node)
+                    if records == None or records == -1:
+                        print(f"[stats] _table_menu_edit: rule not found: {name}")
+                        Message.ok(QC.translate("stats", "New rule error"),
+                                QC.translate("stats", "Rule not found by that name and node"),
+                                QtWidgets.QMessageBox.Icon.Warning)
+                        continue
+                    self._rules_dialog.edit_rule(records, node)
+                    break
+            except Exception as e:
+                print(f"[stats] _table_menu_edit exception: {e}")
+                import traceback
+                traceback.print_exc()
+                # Try to recover by refreshing the table
+                try:
+                    self._refresh_active_table()
+                except Exception as recovery_err:
+                    print(f"[stats] _table_menu_edit recovery failed: {recovery_err}")
 
         elif cur_idx == self.TAB_RULES and self.fwTable.isVisible():
             for idx in selection:
@@ -1750,12 +1807,23 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     "{0}".format(reply.data),
                     QtWidgets.QMessageBox.Icon.Warning)
             else:
-                print("_cb_notification_callback, unknown reply:", reply)
+                print(f"_cb_notification_callback, unknown reply: id={reply.id}, code={reply.code}, data={reply.data}")
+                print(f"  Original notification type: {noti.type if noti else 'None'}")
+                # This is not necessarily an error - some notifications don't need specific handling
+                # Just log it and continue
 
             del self._notifications_sent[reply.id]
+            
+            # After processing notification, try to refresh the Rules table if it was a rule operation
+            try:
+                if noti and noti.type in [ui_pb2.CHANGE_RULE, ui_pb2.DELETE_RULE, ui_pb2.ENABLE_RULE, ui_pb2.DISABLE_RULE]:
+                    print(f"[stats] Refreshing Rules table after rule operation (type={noti.type})")
+                    self._refresh_active_table()
+            except Exception as refresh_err:
+                print(f"[stats] Error refreshing after notification: {refresh_err}")
 
         else:
-            print("_cb_notification_callback, reply not in the list:", reply)
+            print(f"_cb_notification_callback, reply not in the list: id={reply.id}, code={reply.code}")
             Message.ok(
                 QC.translate("stats", "Warning:"),
                 "{0}".format(reply.data),
@@ -2313,33 +2381,58 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 print(f"[stats dialog] refresh error: {refresh_error}")
 
     def _cb_del_rule_clicked(self):
-        ret = Message.yes_no(
-            QC.translate("stats", "    You are about to delete this rule.    "),
-            QC.translate("stats", "    Are you sure?"),
-            QtWidgets.QMessageBox.Icon.Warning)
-        if ret == QtWidgets.QMessageBox.StandardButton.Cancel:
-            return
+        try:
+            ret = Message.yes_no(
+                QC.translate("stats", "    You are about to delete this rule.    "),
+                QC.translate("stats", "    Are you sure?"),
+                QtWidgets.QMessageBox.Icon.Warning)
+            if ret == QtWidgets.QMessageBox.StandardButton.Cancel:
+                return
 
-        self._del_rule(self.TABLES[self.tabWidget.currentIndex()]['label'].text(), self.nodeRuleLabel.text())
-        self.TABLES[self.TAB_RULES]['cmd'].click()
-        self.nodeRuleLabel.setText("")
-        self._refresh_active_table()
+            rule_name = self.TABLES[self.tabWidget.currentIndex()]['label'].text()
+            node_name = self.nodeRuleLabel.text()
+            print(f"[stats] _cb_del_rule_clicked: deleting {rule_name} on {node_name}")
+            
+            self._del_rule(rule_name, node_name)
+            self.TABLES[self.TAB_RULES]['cmd'].click()
+            self.nodeRuleLabel.setText("")
+            self._refresh_active_table()
+        except Exception as e:
+            print(f"[stats] _cb_del_rule_clicked exception: {e}")
+            import traceback
+            traceback.print_exc()
+            try:
+                self._refresh_active_table()
+            except Exception as recovery_err:
+                print(f"[stats] _cb_del_rule_clicked recovery failed: {recovery_err}")
 
     def _cb_enable_rule_toggled(self, state):
-        rule = ui_pb2.Rule(name=self.TABLES[self.tabWidget.currentIndex()]['label'].text())
-        rule.enabled = False
-        rule.action = ""
-        rule.duration = ""
-        rule.operator.type = ""
-        rule.operator.operand = ""
-        rule.operator.data = ""
+        try:
+            rule_name = self.TABLES[self.tabWidget.currentIndex()]['label'].text()
+            print(f"[stats] _cb_enable_rule_toggled: toggling rule {rule_name} to {state}")
+            
+            rule = ui_pb2.Rule(name=rule_name)
+            rule.enabled = False
+            rule.action = ""
+            rule.duration = ""
+            rule.operator.type = ""
+            rule.operator.operand = ""
+            rule.operator.data = ""
 
-        notType = ui_pb2.DISABLE_RULE
-        if state == True:
-            notType = ui_pb2.ENABLE_RULE
-        rule.enabled = state
-        noti = ui_pb2.Notification(type=notType, rules=[rule])
-        self._notification_trigger.emit(noti)
+            notType = ui_pb2.DISABLE_RULE
+            if state == True:
+                notType = ui_pb2.ENABLE_RULE
+            rule.enabled = state
+            noti = ui_pb2.Notification(type=notType, rules=[rule])
+            self._notification_trigger.emit(noti)
+        except Exception as e:
+            print(f"[stats] _cb_enable_rule_toggled exception: {e}")
+            import traceback
+            traceback.print_exc()
+            try:
+                self._refresh_active_table()
+            except Exception as recovery_err:
+                print(f"[stats] _cb_enable_rule_toggled recovery failed: {recovery_err}")
 
     def _cb_prev_button_clicked(self):
         model = self._get_active_table().model()

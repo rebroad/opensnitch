@@ -215,6 +215,8 @@ func findConnProcess(value *networkEventT, connKey string) (proc *procmon.Proces
 
 	// We'll end here if the events module has not been loaded, or if the process is not in cache.
 	comm := byteArrayToString(value.Comm[:])
+	log.Debug("[ebpf conn] Creating new process for PID %d, comm: %s", int(value.Pid), comm)
+
 	proc = procmon.NewProcess(int(value.Pid), comm)
 	proc.UID = int(value.UID)
 
@@ -222,6 +224,37 @@ func findConnProcess(value *networkEventT, connKey string) (proc *procmon.Proces
 	if err := proc.GetDetails(); err != nil {
 		log.Debug("[ebpf conn] could not get process details for PID %d: %s", proc.ID, err)
 		// Continue anyway with basic info
+	}
+
+	// If Path is still empty after GetDetails, try even more aggressive approaches
+	if proc.Path == "" {
+		log.Warning("[ebpf conn] Process path is EMPTY after GetDetails! PID: %d, comm: %s, trying fallbacks...", proc.ID, comm)
+
+		// Try reading the path directly
+		if err := proc.ReadPath(); err != nil {
+			log.Warning("[ebpf conn] ReadPath failed: %s", err)
+		}
+
+		// If still empty, try reading exe link directly
+		if proc.Path == "" {
+			if link, err := proc.ReadExeLink(); err == nil && link != "" {
+				log.Debug("[ebpf conn] Got path from ReadExeLink: %s", link)
+				proc.SetPath(link)
+			} else {
+				log.Warning("[ebpf conn] ReadExeLink failed: %s", err)
+			}
+		}
+
+		// Last resort: use comm name or indicate it's a kernel process
+		if proc.Path == "" {
+			if proc.IsAlive() {
+				log.Warning("[ebpf conn] Process %d is alive but has no path! Using comm: %s", proc.ID, proc.Comm)
+				proc.Path = proc.Comm
+			} else {
+				log.Warning("[ebpf conn] Process %d exited before we could read its path! comm: %s", proc.ID, proc.Comm)
+				proc.Path = fmt.Sprintf("[exited:%s]", proc.Comm)
+			}
+		}
 	}
 
 	procmon.EventsCache.Add(proc)
