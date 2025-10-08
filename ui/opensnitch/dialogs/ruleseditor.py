@@ -56,6 +56,7 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def __init__(self, parent=None, _rule=None, appicon=None):
         super(RulesEditorDialog, self).__init__(parent)
+        print("[rules editor] *** RulesEditorDialog initialized with DEBUG CODE ***")
 
         self._notifications_sent = {}
         self._nodes = Nodes.instance()
@@ -523,6 +524,12 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         self.md5Line.setEnabled(False)
 
     def _load_rule(self, addr=None, rule=None):
+        print(self.LOG_TAG, "=== _load_rule called ===")
+        print(self.LOG_TAG, "rule:", rule)
+        print(self.LOG_TAG, "rule has available_operands?", hasattr(rule, 'available_operands'))
+        if hasattr(rule, 'available_operands'):
+            print(self.LOG_TAG, "available_operands in rule:", repr(rule.available_operands))
+
         if self._load_nodes(addr) == False:
             return False
 
@@ -1299,10 +1306,16 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         return True, ""
 
     def edit_rule(self, records, _addr=None):
+        print(self.LOG_TAG, "========== edit_rule called ==========")
+        print(self.LOG_TAG, "records:", records)
         self.WORK_MODE = self.EDIT_RULE
         self._reset_state()
 
         self.rule = Rule.new_from_records(records)
+        print(self.LOG_TAG, "Rule created from records")
+        print(self.LOG_TAG, "Rule has available_operands attr?", hasattr(self.rule, 'available_operands'))
+        if hasattr(self.rule, 'available_operands'):
+            print(self.LOG_TAG, "available_operands value:", repr(self.rule.available_operands))
         if self.rule.operator.type not in Config.RulesTypes:
             Message.ok(QC.translate("rules", "<b>Rule not supported</b>"),
                        QC.translate("rules", "This type of rule ({0}) is not supported by version {1}".format(self.rule.operator.type, version)),

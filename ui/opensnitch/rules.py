@@ -117,6 +117,9 @@ class Rules(QObject):
                 available_operands_json = ''
                 if hasattr(r, 'available_operands') and r.available_operands:
                     available_operands_json = r.available_operands
+                    print(self.LOG_TAG + f"add_rules: Rule {r.name} HAS available_operands: {available_operands_json[:200]}")
+                else:
+                    print(self.LOG_TAG + f"add_rules: Rule {r.name} has NO available_operands (hasattr={hasattr(r, 'available_operands')})")
 
                 self.add(datetime.now().strftime(DBDateFieldFormat),
                          addr,

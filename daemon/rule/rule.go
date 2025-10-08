@@ -149,14 +149,15 @@ func (r *Rule) Serialize() *protocol.Rule {
 	}
 
 	protoRule := &protocol.Rule{
-		Created:     created.Unix(),
-		Name:        string(r.Name),
-		Description: string(r.Description),
-		Enabled:     bool(r.Enabled),
-		Precedence:  bool(r.Precedence),
-		Nolog:       bool(r.Nolog),
-		Action:      string(r.Action),
-		Duration:    string(r.Duration),
+		Created:           created.Unix(),
+		Name:              string(r.Name),
+		Description:       string(r.Description),
+		Enabled:           bool(r.Enabled),
+		Precedence:        bool(r.Precedence),
+		Nolog:             bool(r.Nolog),
+		Action:            string(r.Action),
+		Duration:          string(r.Duration),
+		AvailableOperands: string(r.AvailableOperands),
 		Operator: &protocol.Operator{
 			Type:      string(r.Operator.Type),
 			Sensitive: bool(r.Operator.Sensitive),
