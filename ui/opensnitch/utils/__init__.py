@@ -1,6 +1,6 @@
 
 from PyQt6 import QtCore, QtWidgets, QtGui
-from opensnitch.version import version as gui_version
+from opensnitch.version import version as gui_version, get_version_string
 from opensnitch.database import Database
 from opensnitch.config import Config
 from opensnitch.utils.themes import Themes
@@ -464,7 +464,7 @@ class Versions():
             from google.protobuf import __version__ as proto_version
             from grpc import _grpcio_metadata as grpcmeta
 
-            return gui_version, grpcmeta.__version__, proto_version
+            return get_version_string(), grpcmeta.__version__, proto_version
 
         except:
             return "none", "none", "none"

@@ -35,7 +35,9 @@ install:
 
 opensnitchd: $(SRC)
 	@go get
-	@go build -o opensnitchd . 
+	$(eval GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown"))
+	$(eval GIT_DIRTY := $(shell git diff-index --quiet HEAD -- 2>/dev/null || echo "-dirty"))
+	@go build -ldflags "-X github.com/evilsocket/opensnitch/daemon/core.GitCommit=$(GIT_COMMIT)$(GIT_DIRTY)" -o opensnitchd . 
 
 clean:
 	@rm -rf opensnitchd

@@ -867,7 +867,9 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     def showEvent(self, event):
         super(StatsDialog, self).showEvent(event)
         self._shown_trigger.emit()
-        window_title = QC.translate("stats", "OpenSnitch Network Statistics {0}").format(version)
+        from opensnitch.version import get_version_string
+        version_str = get_version_string()
+        window_title = QC.translate("stats", "OpenSnitch Network Statistics {0}").format(version_str)
         if self._address is not None:
             window_title = QC.translate("stats", "OpenSnitch Network Statistics for {0}").format(self._address)
             self.nodeLabel.setText(self._address)

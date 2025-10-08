@@ -563,7 +563,7 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Println(core.Version)
+		fmt.Println(core.GetVersionString())
 		os.Exit(0)
 	}
 	if checkRequirements {
@@ -575,7 +575,7 @@ func main() {
 	setupProfiling()
 	setupSignals()
 
-	log.Important("Starting %s v%s", core.Name, core.Version)
+	log.Important("Starting %s v%s", core.Name, core.GetVersionString())
 
 	err := rule.LoadAliases(aliasFile)
 	if err != nil {

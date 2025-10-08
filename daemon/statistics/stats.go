@@ -258,7 +258,7 @@ func (s *Statistics) Serialize() *protocol.Statistics {
 	defer s.Unlock()
 
 	return &protocol.Statistics{
-		DaemonVersion: core.Version,
+		DaemonVersion: core.GetVersionString(),
 		Rules:         uint64(s.rules.NumRules()),
 		Uptime:        uint64(time.Since(s.Started).Seconds()),
 		DnsResponses:  uint64(s.DNSResponses),
