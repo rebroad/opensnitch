@@ -236,8 +236,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     "created as Created," \
                     "uses as Uses",
             "header_labels": [],
-            "last_order_by": "2",
-            "last_order_to": 0,
+            "last_order_by": "9",
+            "last_order_to": 1,
             "tracking_column:": COL_R_NAME
         },
         TAB_HOSTS: {
@@ -666,14 +666,17 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 verticalScrollBar=self.verticalScrollBar,
                 sort_direction=self.SORT_ORDER[1],
                 delegate=self.TABLES[self.TAB_NODES]['delegate'])
+        print(f"[stats] Setting up Rules table with order_by=9, sort_direction={self.SORT_ORDER[1]}")
+        print(f"[stats] TABLES[TAB_RULES] before setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
         self.TABLES[self.TAB_RULES]['view'] = self._setup_table(QtWidgets.QTableView, self.rulesTable, "rules",
                 fields=self.TABLES[self.TAB_RULES]['display_fields'],
                 model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                 verticalScrollBar=self.rulesScrollBar,
                 delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                order_by="2",
-                sort_direction=self.SORT_ORDER[0],
+                order_by="9",
+                sort_direction=self.SORT_ORDER[1],
                 tracking_column=self.COL_R_NAME)
+        print(f"[stats] TABLES[TAB_RULES] after setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
 
         # Set dynamic row height for Rules table based on Description column content
         rules_view = self.TABLES[self.TAB_RULES]['view']
@@ -2574,7 +2577,10 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         order_field = self.TABLES[cur_idx]['last_order_by']
         if field != None:
            order_field  = field
-        return " ORDER BY %s %s" % (order_field, self.SORT_ORDER[self.TABLES[cur_idx]['last_order_to']])
+        order_str = " ORDER BY %s %s" % (order_field, self.SORT_ORDER[self.TABLES[cur_idx]['last_order_to']])
+        if cur_idx == self.TAB_RULES:
+            print(f"[stats] _get_order for Rules: field={order_field}, direction={self.SORT_ORDER[self.TABLES[cur_idx]['last_order_to']]}, result={order_str}")
+        return order_str
 
     def _refresh_active_table(self):
         try:
@@ -2603,8 +2609,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                         model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                         verticalScrollBar=self.rulesScrollBar,
                         delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                        order_by="2",
-                        sort_direction=self.SORT_ORDER[0],
+                        order_by="9",
+                        sort_direction=self.SORT_ORDER[1],
                         tracking_column=self.COL_R_NAME)
             except Exception as setup_error:
                 print(f"[stats dialog] table setup error: {setup_error}")
