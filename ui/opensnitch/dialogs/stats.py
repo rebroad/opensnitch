@@ -670,17 +670,15 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 verticalScrollBar=self.verticalScrollBar,
                 sort_direction=self.SORT_ORDER[1],
                 delegate=self.TABLES[self.TAB_NODES]['delegate'])
-        print(f"[stats] Setting up Rules table with order_by={self.RULES_DEFAULT_SORT_COLUMN}, sort_direction={self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION]}")
-        print(f"[stats] TABLES[TAB_RULES] before setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
+        print(f"[stats] Setting up Rules table with order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, sort_direction={self.SORT_ORDER[self.TABLES[self.TAB_RULES]['last_order_to']]}")
         self.TABLES[self.TAB_RULES]['view'] = self._setup_table(QtWidgets.QTableView, self.rulesTable, "rules",
                 fields=self.TABLES[self.TAB_RULES]['display_fields'],
                 model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                 verticalScrollBar=self.rulesScrollBar,
                 delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                order_by=self.RULES_DEFAULT_SORT_COLUMN,
-                sort_direction=self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION],
+                order_by=self.TABLES[self.TAB_RULES]['last_order_by'],
+                sort_direction=self.SORT_ORDER[self.TABLES[self.TAB_RULES]['last_order_to']],
                 tracking_column=self.COL_R_NAME)
-        print(f"[stats] TABLES[TAB_RULES] after setup: last_order_by={self.TABLES[self.TAB_RULES]['last_order_by']}, last_order_to={self.TABLES[self.TAB_RULES]['last_order_to']}")
 
         # Set dynamic row height for Rules table based on Description column content
         rules_view = self.TABLES[self.TAB_RULES]['view']
@@ -2613,8 +2611,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                         model=GenericTableModel("rules", self.TABLES[self.TAB_RULES]['header_labels']),
                         verticalScrollBar=self.rulesScrollBar,
                         delegate=self.TABLES[self.TAB_RULES]['delegate'],
-                        order_by=self.RULES_DEFAULT_SORT_COLUMN,
-                        sort_direction=self.SORT_ORDER[self.RULES_DEFAULT_SORT_DIRECTION],
+                        order_by=self.TABLES[self.TAB_RULES]['last_order_by'],
+                        sort_direction=self.SORT_ORDER[self.TABLES[self.TAB_RULES]['last_order_to']],
                         tracking_column=self.COL_R_NAME)
             except Exception as setup_error:
                 print(f"[stats dialog] table setup error: {setup_error}")
