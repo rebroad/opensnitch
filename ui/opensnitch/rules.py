@@ -27,6 +27,24 @@ class Rule():
         return s == 'True'
 
     @staticmethod
+    def get_available_operands(rule_name, node):
+        """Fetch available_operands for a rule from the database"""
+        try:
+            from opensnitch.database import Database
+            from PyQt6.QtSql import QSqlQuery
+            db = Database.instance()
+            q = QSqlQuery(db.get_db())
+            q.prepare("SELECT available_operands FROM rules WHERE name=? AND node=?")
+            q.addBindValue(rule_name)
+            q.addBindValue(node)
+            if q.exec() and q.next():
+                return q.value(0) or ""
+            return ""
+        except Exception as e:
+            print(f"[Rule] Error fetching available_operands: {e}")
+            return ""
+
+    @staticmethod
     def new_empty():
         pass
 
@@ -46,7 +64,10 @@ class Rule():
         rule.operator.data = "" if records.value(RuleFields.OpData) == None else str(records.value(RuleFields.OpData))
         rule.description = records.value(RuleFields.Description)
         rule.nolog = Rule.to_bool(records.value(RuleFields.NoLog))
-        rule.available_operands = records.value(RuleFields.AvailableOperands) or ""
+
+        # Fetch available_operands separately from database since it's not in display query
+        rule.available_operands = Rule.get_available_operands(records.value(RuleFields.Name), records.value(RuleFields.Node))
+
         created = int(datetime.now().timestamp())
         if records.value(RuleFields.Created) != "":
             created = int(datetime.strptime(

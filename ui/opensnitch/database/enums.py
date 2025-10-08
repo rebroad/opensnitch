@@ -33,7 +33,7 @@ class RuleFields():
     NoLog = 12
     Created = 13
     Uses = 14
-    AvailableOperands = 15
+    # Note: AvailableOperands is not in display query, fetch separately when needed
 
 class AlertFields():
     Time = 0
