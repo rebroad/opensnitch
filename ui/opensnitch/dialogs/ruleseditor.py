@@ -690,49 +690,86 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _populate_fields_from_available_operands(self):
         """Populate rule editor fields with data from available_operands JSON."""
-        if not hasattr(self.rule, 'available_operands') or not self.rule.available_operands:
+        print(self.LOG_TAG, "=== _populate_fields_from_available_operands called ===")
+        print(self.LOG_TAG, "has available_operands attr?", hasattr(self.rule, 'available_operands'))
+
+        if not hasattr(self.rule, 'available_operands'):
+            print(self.LOG_TAG, "Rule does not have available_operands attribute")
+            return
+
+        print(self.LOG_TAG, "available_operands value:", repr(self.rule.available_operands))
+
+        if not self.rule.available_operands:
+            print(self.LOG_TAG, "available_operands is empty or None")
             return
 
         try:
             import json
             operands = json.loads(self.rule.available_operands)
+            print(self.LOG_TAG, "Parsed operands:", operands)
 
             # Populate process path if not already set
-            if 'process_path' in operands and operands['process_path'] and not self.procLine.text():
-                self.procLine.setText(operands['process_path'])
+            if 'process_path' in operands and operands['process_path']:
+                print(self.LOG_TAG, f"Setting process_path to: {operands['process_path']}")
+                print(self.LOG_TAG, f"Current procLine text: '{self.procLine.text()}'")
+                if not self.procLine.text():
+                    self.procLine.setText(operands['process_path'])
+                    print(self.LOG_TAG, "Process path populated")
+                else:
+                    print(self.LOG_TAG, "Process path field already has text, skipping")
 
             # Populate process args if not already set
-            if 'process_args' in operands and operands['process_args'] and not self.cmdlineLine.text():
-                self.cmdlineLine.setText(operands['process_args'])
+            if 'process_args' in operands and operands['process_args']:
+                print(self.LOG_TAG, f"Setting process_args to: {operands['process_args'][:100]}...")
+                if not self.cmdlineLine.text():
+                    self.cmdlineLine.setText(operands['process_args'])
+                    print(self.LOG_TAG, "Process args populated")
 
             # Populate user ID if not already set
-            if 'user_id' in operands and operands['user_id'] and not self.uidCombo.currentText():
-                self.uidCombo.setCurrentText(operands['user_id'])
+            if 'user_id' in operands and operands['user_id']:
+                print(self.LOG_TAG, f"Setting user_id to: {operands['user_id']}")
+                if not self.uidCombo.currentText():
+                    self.uidCombo.setCurrentText(operands['user_id'])
+                    print(self.LOG_TAG, "User ID populated")
 
             # Populate destination IP if not already set
-            if 'dst_ip' in operands and operands['dst_ip'] and not self.dstIPCombo.currentText():
-                self.dstIPCombo.setCurrentText(operands['dst_ip'])
+            if 'dst_ip' in operands and operands['dst_ip']:
+                print(self.LOG_TAG, f"Setting dst_ip to: {operands['dst_ip']}")
+                if not self.dstIPCombo.currentText():
+                    self.dstIPCombo.setCurrentText(operands['dst_ip'])
+                    print(self.LOG_TAG, "Destination IP populated")
 
             # Populate destination port if not already set
-            if 'dst_port' in operands and operands['dst_port'] and not self.dstPortLine.text():
-                self.dstPortLine.setText(operands['dst_port'])
+            if 'dst_port' in operands and operands['dst_port']:
+                print(self.LOG_TAG, f"Setting dst_port to: {operands['dst_port']}")
+                if not self.dstPortLine.text():
+                    self.dstPortLine.setText(operands['dst_port'])
+                    print(self.LOG_TAG, "Destination port populated")
 
             # Populate destination host if not already set
-            if 'dst_host' in operands and operands['dst_host'] and not self.dstHostLine.text():
-                self.dstHostLine.setText(operands['dst_host'])
+            if 'dst_host' in operands and operands['dst_host']:
+                print(self.LOG_TAG, f"Setting dst_host to: {operands['dst_host']}")
+                if not self.dstHostLine.text():
+                    self.dstHostLine.setText(operands['dst_host'])
+                    print(self.LOG_TAG, "Destination host populated")
 
             # Populate parent process path if not already set
             if 'process_parent_path' in operands and operands['process_parent_path']:
+                print(self.LOG_TAG, f"Parent process available: {operands['process_parent_path']}")
                 # Note: Parent process fields will be added to the UI in a future update
                 pass
 
             # Populate grandparent process path if not already set
             if 'process_grandparent_path' in operands and operands['process_grandparent_path']:
+                print(self.LOG_TAG, f"Grandparent process available: {operands['process_grandparent_path']}")
                 # Note: Grandparent process fields will be added to the UI in a future update
                 pass
 
+            print(self.LOG_TAG, "=== Finished populating fields ===")
         except Exception as e:
             print(self.LOG_TAG, "exception parsing available_operands:", e)
+            import traceback
+            traceback.print_exc()
 
     def _load_nodes(self, addr=None):
         try:

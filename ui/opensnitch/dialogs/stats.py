@@ -234,7 +234,8 @@ class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     "duration as Duration," \
                     "description as Description," \
                     "created as Created," \
-                    "uses as Uses",
+                    "uses as Uses," \
+                    "available_operands as AvailableOperands",
             "header_labels": [],
             "last_order_by": "2",
             "last_order_to": 0,
