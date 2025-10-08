@@ -1,47 +1,19 @@
-import subprocess
-import os
-
 version = '1.7.3'
 
-def get_git_commit():
-    """Get the current git commit hash (short form) for development versions."""
+def get_build_commit():
+    """Get the commit hash that was hardcoded during installation."""
     try:
-        # Get the directory where this file is located
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Navigate up to the repository root (assuming standard structure)
-        repo_root = os.path.abspath(os.path.join(current_dir, '..', '..', '..'))
-
-        # Get the short commit hash
-        result = subprocess.run(
-            ['git', 'rev-parse', '--short', 'HEAD'],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            timeout=2
-        )
-
-        if result.returncode == 0:
-            commit = result.stdout.strip()
-
-            # Check if there are uncommitted changes
-            dirty_result = subprocess.run(
-                ['git', 'diff-index', '--quiet', 'HEAD', '--'],
-                cwd=repo_root,
-                timeout=2
-            )
-
-            if dirty_result.returncode != 0:
-                commit += '-dirty'
-
-            return commit
-    except Exception:
-        pass
-
-    return None
+        from . import _version_info
+        return _version_info.build_commit
+    except (ImportError, AttributeError):
+        return None
 
 def get_version_string():
-    """Get the version string, including git commit for development builds."""
-    commit = get_git_commit()
+    """Get the version string, including git commit if it was hardcoded during installation.
+    Does NOT fallback to dynamic git query to avoid misleading version info."""
+    # Only use the build commit that was hardcoded during pip install
+    commit = get_build_commit()
+    
     if commit:
         return f"{version} (git:{commit})"
     return version
